@@ -17,7 +17,7 @@
         "typescript": "^5.6.3"
     },
     "scripts": {
-        "start": "nodemon ./build/index.js",
+        "start": "nodemon ./src/index.ts",
         "dev": "npm run build && npm run start",
         "build": "tsc -p ."
     }

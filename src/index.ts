@@ -1,7 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-import router from "./routes/students-routes";
+import router from "./routes/group-routes";
 
 dotenv.config();
 
@@ -14,8 +14,6 @@ app.use(express.json());
 app.get("/", (req, res) => {
     res.send("Hello, World!");
 });
-
-console.log(router);
 
 app.use("/group", router);
 
