@@ -1,10 +1,9 @@
 import express, { Express } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import DataListRouter from './routes/DataListRouter';
+import DataRouter from './routes/DataRouter';
 import connectDB from './db';
-import { connect } from 'mongoose';
-
+import NameRouter from "./routes/NameRouter"
 dotenv.config();
 
 const app: Express = express();
@@ -15,7 +14,8 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 
-app.use('/data', DataListRouter);
+app.use('/data', DataRouter);
+app.use('/name', NameRouter )
 
 app.get('/', (req, res) => {
     res.send('Welcome to the NameList API!');
