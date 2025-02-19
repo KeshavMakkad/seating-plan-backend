@@ -1,13 +1,37 @@
 import express from "express";
 import DataModel from "../models/DataSchema";
+import NameModel from "../models/NameSchema";
 
 const router = express.Router();
 const password = process.env.PASSWORD;
+const TIME_DIFF = parseInt(process.env.TIME_DIFF || (1000 * 60 * 30).toString(), 10); // Default to 30 mins
 
 router.get("/:name", async (req, res) => {
     try {
+        const nameEntry = await NameModel.findOne({ name: req.params.name });
+        if (!nameEntry) {
+            return res.status(400).json({ message: "Seating Plan not found" });
+        }
+
+        let date: string | number = nameEntry.date; // Assuming this is already an epoch timestamp
+
+        if (typeof date === "string") {
+            date = parseInt(date, 10);
+        }
+
+        if (typeof date !== "number") {
+            return res.status(500).json({ message: "Invalid epoch format in database" });
+        }
+
+        const dateNow = Date.now(); // Directly get current epoch time
+
+        if (dateNow + TIME_DIFF <= date) {
+            return res.status(418).json({ message: "Time difference" });
+        }
+
         const data = await DataModel.findOne({ name: req.params.name });
         if (!data) return res.status(404).json({ message: "Not found" });
+
         res.json(data);
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
@@ -16,7 +40,9 @@ router.get("/:name", async (req, res) => {
 
 router.post("/:password", async (req, res) => {
     if (req.params.password !== password) {
-        return res.status(403).json("You are not authorised to access this API");
+        return res
+            .status(403)
+            .json("You are not authorised to access this API");
     }
 
     try {
@@ -40,7 +66,9 @@ router.post("/:password", async (req, res) => {
 
 router.put("/:name/:password", async (req, res) => {
     if (req.params.password !== password) {
-        return res.status(403).json("You are not authorised to access this API");
+        return res
+            .status(403)
+            .json("You are not authorised to access this API");
     }
 
     try {
@@ -58,11 +86,15 @@ router.put("/:name/:password", async (req, res) => {
 
 router.delete("/:name/:password", async (req, res) => {
     if (req.params.password !== password) {
-        return res.status(403).json("You are not authorised to access this API");
+        return res
+            .status(403)
+            .json("You are not authorised to access this API");
     }
 
     try {
-        const deletedData = await DataModel.findOneAndDelete({ name: req.params.name });
+        const deletedData = await DataModel.findOneAndDelete({
+            name: req.params.name,
+        });
         if (!deletedData) return res.status(404).json({ message: "Not found" });
         res.json({ message: "Deleted successfully" });
     } catch (error) {
