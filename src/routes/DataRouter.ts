@@ -26,7 +26,7 @@ router.get("/:name", async (req, res) => {
         const dateNow = Date.now(); // Directly get current epoch time
 
         if (dateNow + TIME_DIFF <= date) {
-            return res.status(418).json({ message: "Time difference" });
+            return res.status(418).json({ message: `${date}` });
         }
 
         const data = await DataModel.findOne({ name: req.params.name });
