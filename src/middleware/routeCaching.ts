@@ -1,17 +1,10 @@
-import Redis from "ioredis";
+import NodeCache from "node-cache";
 
-// Connect to Redis using environment variable for Render deployment
-const redisClient = new Redis(process.env.REDIS_URL || "", {
-    retryStrategy: (times) => Math.min(times * 50, 2000), // Exponential backoff
-    maxRetriesPerRequest: null, // Prevents retry limit errors
-    enableReadyCheck: false, // Helps if Redis is slow to respond
-});
+// Create a NodeCache instance
+const cache = new NodeCache({ stdTTL: 0 }); // Disable default TTL
 
 // In-memory lock object to track ongoing requests
 const locks: Record<string, { promise: Promise<any>; resolve: (value: any) => void }> = {};
-
-redisClient.on("connect", () => console.log("✅ Connected to Redis"));
-redisClient.on("error", (err) => console.error("❌ Redis error:", err));
 
 export default function handleCache(duration: number) {
     return async (req: any, res: any, next: () => void) => {
@@ -24,11 +17,11 @@ export default function handleCache(duration: number) {
 
         try {
             // Check if response is cached
-            const cachedResponse = await redisClient.get(key);
+            const cachedResponse = cache.get(key);
 
             if (cachedResponse) {
                 console.log(`Cache hit for ${key}`);
-                return res.json(JSON.parse(cachedResponse));
+                return res.json(cachedResponse);
             }
 
             console.log(`Cache miss for ${key}`);
@@ -53,8 +46,7 @@ export default function handleCache(duration: number) {
             res.json = (body: any) => {
                 console.log(`Storing response in cache for key: ${key}`);
 
-                redisClient.set(key, JSON.stringify(body), "EX", duration)
-                    .catch((err) => console.error("❌ Redis set error:", err));
+                cache.set(key, body, duration);
 
                 // Resolve lock promise and clear lock
                 locks[key].resolve(body);
@@ -66,7 +58,7 @@ export default function handleCache(duration: number) {
             next();
 
         } catch (error) {
-            console.error("Redis error:", error);
+            console.error("Cache error:", error);
 
             // Ensure lock is cleared if an error occurs
             delete locks[key];
