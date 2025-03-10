@@ -1,9 +1,17 @@
-import Redis from 'ioredis';
+import Redis from "ioredis";
 
-const redisClient = new Redis();
+// Connect to Redis using environment variable for Render deployment
+const redisClient = new Redis(process.env.REDIS_URL || "", {
+    retryStrategy: (times) => Math.min(times * 50, 2000), // Exponential backoff
+    maxRetriesPerRequest: null, // Prevents retry limit errors
+    enableReadyCheck: false, // Helps if Redis is slow to respond
+});
 
 // In-memory lock object to track ongoing requests
-const locks: Record<string, Promise<any>> = {};
+const locks: Record<string, { promise: Promise<any>; resolve: (value: any) => void }> = {};
+
+redisClient.on("connect", () => console.log("✅ Connected to Redis"));
+redisClient.on("error", (err) => console.error("❌ Redis error:", err));
 
 export default function handleCache(duration: number) {
     return async (req: any, res: any, next: () => void) => {
@@ -15,6 +23,7 @@ export default function handleCache(duration: number) {
         const key = req.originalUrl;
 
         try {
+            // Check if response is cached
             const cachedResponse = await redisClient.get(key);
 
             if (cachedResponse) {
@@ -24,29 +33,33 @@ export default function handleCache(duration: number) {
 
             console.log(`Cache miss for ${key}`);
 
-            // If there's already a lock/promise for this key, wait for it
-            if (await locks[key]) {
+            // Wait if another request is already fetching this key
+            if (locks[key]) {
                 console.log(`Waiting for ongoing request to finish for key: ${key}`);
-                const result = await locks[key];
-                return res.json(result);
+                return res.json(await locks[key].promise);
             }
 
-            // Create a promise and store it in locks
-            let resolver: (value: any) => void;
-            locks[key] = new Promise((resolve) => {
-                resolver = resolve;
-            });
+            // Create a lock object with a Promise and its resolver
+            let resolveFn: (value: any) => void;
+            locks[key] = {
+                promise: new Promise((resolve) => {
+                    resolveFn = resolve;
+                }),
+                resolve: resolveFn!, // Non-null assertion (TypeScript)
+            };
 
             const originalJson = res.json.bind(res);
 
             res.json = (body: any) => {
                 console.log(`Storing response in cache for key: ${key}`);
-                redisClient.set(key, JSON.stringify(body), 'EX', duration);
-                
-                // Resolve the lock promise so other waiting requests can proceed
-                resolver(body);
-                delete locks[key]; // Clear lock after resolving
-                
+
+                redisClient.set(key, JSON.stringify(body), "EX", duration)
+                    .catch((err) => console.error("❌ Redis set error:", err));
+
+                // Resolve lock promise and clear lock
+                locks[key].resolve(body);
+                delete locks[key];
+
                 return originalJson(body);
             };
 
@@ -54,12 +67,10 @@ export default function handleCache(duration: number) {
 
         } catch (error) {
             console.error("Redis error:", error);
-            
-            // Clear lock if an error occurs
-            if (await locks[key]) {
-                delete locks[key];
-            }
-            
+
+            // Ensure lock is cleared if an error occurs
+            delete locks[key];
+
             next();
         }
     };
