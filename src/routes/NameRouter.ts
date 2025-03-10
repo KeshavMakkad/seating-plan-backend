@@ -1,11 +1,12 @@
 import express from "express";
 import NameModel from "../models/NameSchema";
+import handleCache from "../middleware/routeCaching";
 
 const router = express.Router();
 const password = process.env.PASSWORD; // Ensure this is set in your environment
 
 // GET all names (no password required)
-router.get("/", async (req, res) => {
+router.get("/", handleCache(7200), async (req, res) => {
     try {
         const nameList = await NameModel.find();
         if (!nameList) return res.status(404).json({ message: "Not found" });
