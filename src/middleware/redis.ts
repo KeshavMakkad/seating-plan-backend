@@ -1,81 +1,92 @@
 import Redis from "ioredis";
 import { Request, Response, NextFunction } from "express";
-
-// Connect to Redis using hardcoded URL and password
+import crypto from "crypto";
 
 const REDIS_URL = process.env.REDIS_URL || "";
 
 const redisClient = new Redis(REDIS_URL, {
-    retryStrategy: (times) => Math.min(times * 50, 2000), // Exponential backoff
-    maxRetriesPerRequest: null, // Prevents retry limit errors
-    enableReadyCheck: false, // Helps if Redis is slow to respond
+    retryStrategy: (times) => Math.min(times * 50, 2000),
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
 });
 
-// In-memory lock object to track ongoing requests
-const locks: Record<string, { promise: Promise<any>; resolve: (value: any) => void }> = {};
+// More efficient than plain objects for concurrency
+const locks = new Map<string, { promise: Promise<any>; resolve: (value: any) => void }>();
 
-redisClient.on("connect", () => console.log("✅ Connected to Redis"));
+redisClient.on("connect", () => console.log("✅ Redis connected"));
 redisClient.on("error", (err) => console.error("❌ Redis error:", err));
 
-export default function handleCache(duration: number) {
-    return async (req: Request, res: Response, next: NextFunction) => {
-        if (req.method !== "GET") {
-            console.log("Cannot cache non-GET methods!");
-            return next();
-        }
+// Utility to hash long URLs into consistent-length keys
+const hashKey = (url: string) => crypto.createHash("sha1").update(url).digest("hex");
 
-        const key = req.originalUrl;
+export default function handleCache(durationSeconds: number) {
+    return async (req: Request, res: Response, next: NextFunction) => {
+        if (req.method !== "GET") return next();
+
+        const cacheKey = hashKey(req.originalUrl);
 
         try {
-            // Check if response is cached
-            const cachedResponse = await redisClient.get(key);
-
-            if (cachedResponse) {
-                console.log(`Cache hit for ${key}`);
-                return res.json(JSON.parse(cachedResponse));
+            // Try cache first
+            const cached = await redisClient.get(cacheKey);
+            if (cached) {
+                console.log(`✅ [Cache hit] ${req.originalUrl}`);
+                return res.send(cached);
             }
 
-            console.log(`Cache miss for ${key}`);
+            console.log(`🚧 [Cache miss] ${req.originalUrl}`);
 
-            // Wait if another request is already fetching this key
-            if (locks[key]) {
-                console.log(`Waiting for ongoing request to finish for key: ${key}`);
-                return res.json(await locks[key].promise);
+            // If someone else is already fetching this data
+            if (locks.has(cacheKey)) {
+                console.log(`⏳ Waiting on lock for ${req.originalUrl}`);
+                return res.send(await locks.get(cacheKey)!.promise);
             }
 
-            // Create a lock object with a Promise and its resolver
-            let resolveFn: (value: any) => void;
-            locks[key] = {
-                promise: new Promise((resolve) => {
-                    resolveFn = resolve;
-                }),
-                resolve: resolveFn!, // Non-null assertion (TypeScript)
+            // Create a lock
+            let resolveFn!: (value: any) => void;
+            const lockPromise = new Promise((resolve) => { resolveFn = resolve; });
+            locks.set(cacheKey, { promise: lockPromise, resolve: resolveFn });
+
+            // Hook into response
+            const chunks: any[] = [];
+            const originalWrite = res.write.bind(res);
+            const originalEnd = res.end.bind(res);
+
+            res.write = (chunk: any, ...args: any[]) => {
+                chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+                return originalWrite(chunk, ...args);
             };
 
-            const originalJson = res.json.bind(res);
+            res.end = (chunk: any, ...args: any[]) => {
+                if (chunk) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
 
-            res.json = (body: any) => {
-                console.log(`Storing response in cache for key: ${key}`);
+                const body = Buffer.concat(chunks).toString("utf8");
 
-                redisClient.set(key, JSON.stringify(body), "EX", duration)
-                    .catch((err) => console.error("❌ Redis set error:", err));
+                // Fire and forget Redis write
+                redisClient.set(cacheKey, body, "EX", durationSeconds).catch(console.error);
 
-                // Resolve lock promise and clear lock
-                locks[key].resolve(body);
-                delete locks[key];
+                // Resolve lock waiters
+                const lock = locks.get(cacheKey);
+                if (lock) {
+                    lock.resolve(body);
+                    locks.delete(cacheKey);
+                }
 
-                return originalJson(body);
+                return originalEnd(chunk, ...args);
             };
 
+            // Just in case, clean up on abnormal termination
+            res.once("close", () => {
+                if (locks.has(cacheKey)) {
+                    console.warn(`⚠️ Request for ${req.originalUrl} closed prematurely.`);
+                    locks.delete(cacheKey);
+                }
+            });
+
             next();
-
-        } catch (error) {
-            console.error("Redis error:", error);
-
-            // Ensure lock is cleared if an error occurs
-            delete locks[key];
-
-            next();
+        } catch (err) {
+            console.error("❌ Middleware error:", err);
+            locks.delete(cacheKey);
+            return next();
         }
     };
 }
