@@ -1,6 +1,6 @@
 import express from "express";
 import NameModel from "../models/NameSchema";
-import handleCache from "../middleware/routeCaching";
+import handleCache from "../middleware/redis";
 
 const router = express.Router();
 const password = process.env.PASSWORD; // Ensure this is set in your environment

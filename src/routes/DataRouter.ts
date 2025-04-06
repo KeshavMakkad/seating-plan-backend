@@ -1,7 +1,7 @@
 import express from "express";
 import DataModel from "../models/DataSchema";
 import NameModel from "../models/NameSchema";
-import handleCache from "../middleware/routeCaching";
+import handleCache from "../middleware/redis";
 
 const router = express.Router();
 const password = process.env.PASSWORD;
