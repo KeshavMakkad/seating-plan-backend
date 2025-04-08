@@ -5,10 +5,13 @@ import { Request, Response, NextFunction } from "express";
 
 const REDIS_URL = process.env.REDIS_URL || "";
 
-const redisClient = new Redis(REDIS_URL, {
-    retryStrategy: (times) => Math.min(times * 50, 2000), // Exponential backoff
-    maxRetriesPerRequest: null, // Prevents retry limit errors
-    enableReadyCheck: false, // Helps if Redis is slow to respond
+const redisClient = new Redis({
+  host: 'cache',              // Docker service name
+  port: 6379,                 // Internal Redis port
+  password: 'eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81', // Same as your docker-compose.yml
+  retryStrategy: (times: any) => Math.min(times * 50, 2000),
+  maxRetriesPerRequest: null,
+  enableReadyCheck: false,
 });
 
 // In-memory lock object to track ongoing requests
