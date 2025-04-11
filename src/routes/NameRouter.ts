@@ -1,6 +1,7 @@
 import express from "express";
 import NameModel from "../models/NameSchema";
 import handleCache from "../middleware/redis";
+import DataModel from "../models/DataSchema";
 
 const router = express.Router();
 const password = process.env.PASSWORD; // Ensure this is set in your environment
@@ -73,5 +74,52 @@ router.delete("/:name/:password", async (req, res) => {
         res.status(500).json({ message: "Server error", error });
     }
 });
+
+router.get("/:email", async(req, res) => {
+    const email : string = req.params.email.toLowerCase().trim() || ""
+    const regex = /^[a-z]+\.(23|24)bcs[1-9][0-9]{4}@sst\.scaler\.com$/;
+
+    if(email === ""){
+        return res.status(400).json("No email provided")
+    }
+    if (!regex.test(email)) {
+        return res.status(400).json("Invalid Email");
+    }
+
+    const seatingPlans = await NameModel.find();
+
+    const studentStudentPlans = []
+
+    if(!seatingPlans) return res.status(404).json("No seating Plans Avaliable right now")
+
+    for(let plan of seatingPlans){
+        const seatingPlan = await DataModel.findOne({name: plan.name})
+        let found = false;
+        if(seatingPlan){
+            const seatingData : any = seatingPlan.data
+            if(seatingData['classrooms']){
+                for(let className in seatingData['classrooms']){
+                    const classroom = seatingData['classrooms'][className]
+                    for(let col in classroom){
+                        const column = classroom[col][1]
+                        for(let row in column){
+                            for(let seat of column[row]){
+                                if(seat === email){
+                                    found = true
+                                    studentStudentPlans.push(plan)
+                                    break;
+                                }
+                            }
+                            if(found) break;
+                        }
+                        if(found) break;
+                    }
+                    if(found) break;
+                }
+            }
+        }
+    }
+    return res.status(200).json(studentStudentPlans)
+})
 
 export default router;

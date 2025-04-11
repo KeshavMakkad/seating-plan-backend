@@ -13,7 +13,6 @@ services:
     container_name: seating-backend
     build:
       context: .
-      # target: production
       dockerfile: DockerFile
     image: keshavmakkad10/seating-backend
     depends_on:
@@ -21,17 +20,10 @@ services:
     ports:
       - 8000:8000
     environment:
-      # NODE_ENV: production
-      # DB_HOST: db
-      # DB_PORT: 5432
-      # DB_USER: postgres
-      # DB_PASSWORD: postgres
-      # DB_NAME: postgres
       REDIS_HOST: cache
       REDIS_PORT: 6379
       REDIS_PASSWORD: eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
-    links:
-      - cache
+    command: ["npm", "run", "dev"]
     volumes:
       - ./:/src
 
