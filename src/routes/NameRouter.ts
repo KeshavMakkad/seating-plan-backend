@@ -79,6 +79,13 @@ router.get("/:email", async(req, res) => {
     const email : string = req.params.email.toLowerCase().trim() || ""
     const regex = /^[a-z]+\.(23|24)bcs[1-9][0-9]{4}@sst\.scaler\.com$/;
 
+    interface ReturnObjInterface {
+        start_time: string;
+        subject : string;
+        room: string;
+        name: string;
+    }    
+
     if(email === ""){
         return res.status(400).json("No email provided")
     }
@@ -88,7 +95,7 @@ router.get("/:email", async(req, res) => {
 
     const seatingPlans = await NameModel.find();
 
-    const studentStudentPlans = []
+    const studentSeatingPlans: ReturnObjInterface[] = [];
 
     if(!seatingPlans) return res.status(404).json("No seating Plans Avaliable right now")
 
@@ -106,7 +113,17 @@ router.get("/:email", async(req, res) => {
                             for(let seat of column[row]){
                                 if(seat === email){
                                     found = true
-                                    studentStudentPlans.push(plan)
+                                    // console.log("GOt till here 1")
+                                    const subject = plan.name.split(':')[1]
+                                    
+                                    // studentStudentPlans.push(plan)
+                                    studentSeatingPlans.push({
+                                        start_time: plan.date,
+                                        subject: subject,
+                                        room: className,
+                                        name: plan.name
+                                    })
+                                    console.log(studentSeatingPlans)
                                     break;
                                 }
                             }
@@ -119,7 +136,7 @@ router.get("/:email", async(req, res) => {
             }
         }
     }
-    return res.status(200).json(studentStudentPlans)
+    return res.status(200).json(studentSeatingPlans)
 })
 
 export default router;
