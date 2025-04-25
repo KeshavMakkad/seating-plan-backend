@@ -15,6 +15,7 @@ router.get("/:name", handleCache(7200), async (req, res) => {
         }
 
         let date: string | number = nameEntry.date; // Assuming this is already an epoch timestamp
+        const subject = nameEntry.name.split(':')[1];
 
         if (typeof date === "string") {
             date = parseInt(date, 10);
@@ -33,7 +34,7 @@ router.get("/:name", handleCache(7200), async (req, res) => {
         const data = await DataModel.findOne({ name: req.params.name });
         if (!data) return res.status(404).json({ message: "Not found" });
 
-        res.json(data);
+        res.json({data, startTime: date, subject: subject});
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }

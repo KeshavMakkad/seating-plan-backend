@@ -123,7 +123,7 @@ router.get("/:email", async(req, res) => {
                                         room: className,
                                         name: plan.name
                                     })
-                                    console.log(studentSeatingPlans)
+                                    // console.log(studentSeatingPlans)
                                     break;
                                 }
                             }
