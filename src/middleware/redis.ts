@@ -1,14 +1,17 @@
 import Redis from "ioredis";
 import { Request, Response, NextFunction } from "express";
+import env from "dotenv"
 
-// Connect to Redis using hardcoded URL and password
+env.config();
 
-const REDIS_URL = process.env.REDIS_URL || "";
-
-const redisClient = new Redis({
-  host: 'cache',              // Docker service name
-  port: 6379,                 // Internal Redis port
-  password: 'eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81', // Same as your docker-compose.yml
+// Use Redis URL from env if ENV is DEV, else use Docker config
+console.log(process.env.ENV)
+const REDIS_URL = process.env.REDIS_URL;
+if (!REDIS_URL) {
+  throw new Error("REDIS_URL environment variable is not set");
+}
+let redisClient: Redis;
+redisClient = new Redis(REDIS_URL, {
   retryStrategy: (times: any) => Math.min(times * 50, 2000),
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
@@ -18,7 +21,7 @@ const redisClient = new Redis({
 const locks: Record<string, { promise: Promise<any>; resolve: (value: any) => void }> = {};
 
 redisClient.on("connect", () => console.log("✅ Connected to Redis"));
-redisClient.on("error", (err) => console.error("❌ Redis error:", err));
+redisClient.on("error", (err: any) => console.error("❌ Redis error:", err));
 
 export default function handleCache(duration: number) {
     return async (req: Request, res: Response, next: NextFunction) => {
@@ -61,7 +64,7 @@ export default function handleCache(duration: number) {
                 console.log(`Storing response in cache for key: ${key}`);
 
                 redisClient.set(key, JSON.stringify(body), "EX", duration)
-                    .catch((err) => console.error("❌ Redis set error:", err));
+                    .catch((err: any) => console.error("❌ Redis set error:", err));
 
                 // Resolve lock promise and clear lock
                 locks[key].resolve(body);
