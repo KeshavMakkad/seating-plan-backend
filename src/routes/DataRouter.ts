@@ -1,13 +1,12 @@
 import express from "express";
 import DataModel from "../models/DataSchema";
 import NameModel from "../models/NameSchema";
-import handleCache from "../middleware/redis";
 
 const router = express.Router();
 const password = process.env.PASSWORD;
 const TIME_DIFF = parseInt(process.env.TIME_DIFF || (1000 * 60 * 30).toString(), 10); // Default to 30 mins
 
-router.get("/:name", handleCache(7200), async (req, res) => {
+router.get("/:name", async (req, res) => {
     try {
         const nameEntry = await NameModel.findOne({ name: req.params.name });
         if (!nameEntry) {
