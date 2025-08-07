@@ -13,8 +13,6 @@ router.post("/:classname", async (req, res) => {
         });
 
         console.log("Statement", newData);
-        console.log("req Body:", req.body);
-
         await newData.save();
 
         console.log(
