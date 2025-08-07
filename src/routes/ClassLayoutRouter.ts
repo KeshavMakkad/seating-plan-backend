@@ -7,24 +7,15 @@ router.post("/:classname", async (req, res) => {
     try {
         const className = req.params.classname;
 
-        const classLayout = await ClassLayoutModel.findById(className);
-        if (classLayout) {
-            return res
-                .status(400)
-                .json({ message: "Class Layout already exists" });
-        }
-
-        const { layoutData } = req.body;
-
-        console.log(req.body);
-
         const newData = new ClassLayoutModel({
             _id: className,
-            classLayout: layoutData,
+            classLayout: req.body, // Just store whatever JSON is sent
         });
+
         await newData.save();
         res.status(201).json(newData);
     } catch (err) {
+        console.error("Error:", err);
         res.status(500).json({ message: "Internal Server Error", err });
     }
 });
