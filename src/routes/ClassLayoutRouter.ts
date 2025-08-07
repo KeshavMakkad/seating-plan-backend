@@ -14,7 +14,7 @@ router.post("/:classname", async (req, res) => {
                 .json({ message: "Class Layout already exists" });
         }
 
-        const { classLayout: layoutData } = req.body;
+        const { layoutData } = req.body;
 
         console.log(req.body);
 
