@@ -12,7 +12,15 @@ router.post("/:classname", async (req, res) => {
             classLayout: req.body, // Just store whatever JSON is sent
         });
 
+        console.log("Statement", newData);
+        console.log("req Body:", req.body);
+
         await newData.save();
+
+        console.log(
+            "New Data:",
+            await ClassLayoutModel.findOne({ _id: className })
+        );
         res.status(201).json(newData);
     } catch (err) {
         console.error("Error:", err);
