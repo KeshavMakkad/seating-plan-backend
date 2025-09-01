@@ -1,39 +1,29 @@
 import express from "express";
 import DataModel from "../models/DataSchema";
 import NameModel from "../models/NameSchema";
+import { getStudentLists, Student } from "../services/studentListService";
+import { Request } from "express-serve-static-core";
+import { ParsedQs } from "qs";
+import { generateSeatingPlan } from "../services/seatingPlanService";
 
 const router = express.Router();
 const password = process.env.PASSWORD;
-const TIME_DIFF = parseInt(process.env.TIME_DIFF || (1000 * 60 * 30).toString(), 10); // Default to 30 mins
+const TIME_DIFF = parseInt(
+    process.env.TIME_DIFF || (1000 * 60 * 30).toString(),
+    10
+); // Default to 30 mins
 
-router.get("/:name", async (req, res) => {
+router.get("/:classroom", async (req, res) => {
     try {
-        const nameEntry = await NameModel.findOne({ name: req.params.name });
-        if (!nameEntry) {
-            return res.status(400).json({ message: "Seating Plan not found" });
-        }
-
-        let date: string | number = nameEntry.date; // Assuming this is already an epoch timestamp
-        const subject = nameEntry.name.split(':')[1];
-
-        if (typeof date === "string") {
-            date = parseInt(date, 10);
-        }
-
-        if (typeof date !== "number") {
-            return res.status(500).json({ message: "Invalid epoch format in database" });
-        }
-
-        const dateNow = Date.now(); // Directly get current epoch time
-
-        if (dateNow + TIME_DIFF <= date) {
-            return res.status(418).json({ message: `${date}` });
-        }
-
-        const data = await DataModel.findOne({ name: req.params.name });
-        if (!data) return res.status(404).json({ message: "Not found" });
-
-        res.json({data, startTime: date, subject: subject});
+        // const students = await getStudentLists(
+        //     "Class A - Group 1.csv",
+        //     "Class A - Group 2.csv"
+        // );
+        console.log("HELLLOOO");
+        await generateSeatingPlan(req);
+        console.log("HELLLOOO2");
+        // return "SUS";
+        res.status(200).json("SUS");
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
     }

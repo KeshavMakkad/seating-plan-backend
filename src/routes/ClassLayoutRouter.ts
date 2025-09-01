@@ -9,7 +9,7 @@ router.post("/:classname", async (req, res) => {
 
         const newData = new ClassLayoutModel({
             _id: className,
-            classLayout: req.body, // Just store whatever JSON is sent
+            classLayout: req.body,
         });
 
         console.log("Statement", newData);
@@ -50,14 +50,11 @@ router.put("/:classname", async (req, res) => {
 router.get("/:classname", async (req, res) => {
     try {
         const className = req.params.classname;
-
-        // const classLayout = await ClassLayoutModel.findById(className);
-        // if (!classLayout) {
-        //     return res.status(404).json({ message: "Class Layout not found" });
-        // }
-
-        // res.status(200).json(classLayout);
-        res.status(200).json("Class Layout Get working");
+        const classLayout = await ClassLayoutModel.findById(className);
+        if (!classLayout) {
+            return res.status(404).json({ message: "Class Layout not found" });
+        }
+        res.status(200).json(classLayout);
     } catch (err) {
         res.status(500).json({ message: "Internal Server Error", err });
     }
