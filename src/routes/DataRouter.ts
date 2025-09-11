@@ -19,10 +19,7 @@ router.get("/:classroom", async (req, res) => {
         //     "Class A - Group 1.csv",
         //     "Class A - Group 2.csv"
         // );
-        console.log("HELLLOOO");
         await generateSeatingPlan(req);
-        console.log("HELLLOOO2");
-        // return "SUS";
         res.status(200).json("SUS");
     } catch (error) {
         res.status(500).json({ message: "Server error", error });
