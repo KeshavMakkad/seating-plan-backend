@@ -76,7 +76,7 @@ router.delete("/:name/:password", async (req, res) => {
 
 router.get("/:email", async(req, res) => {
     const email : string = req.params.email.toLowerCase().trim() || ""
-    const regex = /^[a-z]+\.(23|24)bcs[1-9][0-9]{4}@sst\.scaler\.com$/;
+    const regex = /^[a-z]+\.(23|24|25)bcs[1-9][0-9]{4}@sst\.scaler\.com$/;
 
     interface ReturnObjInterface {
         start_time: string;
