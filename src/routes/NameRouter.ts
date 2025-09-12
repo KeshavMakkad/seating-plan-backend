@@ -88,7 +88,11 @@ router.get("/:email", async(req, res) => {
     if(email === ""){
         return res.status(400).json("No email provided")
     }
-    if (email != 'andraju.venkata.25bcs10553@sst.scaler.com' && !regex.test(email)) {
+
+    const badEmails = process.env.BAD_EMAILS ? process.env.BAD_EMAILS.split(';') : [];
+
+
+    if (!badEmails.includes(email) && !regex.test(email)) {
         return res.status(400).json("Invalid Email");
     }
 
