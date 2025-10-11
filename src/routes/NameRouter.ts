@@ -100,7 +100,7 @@ router.get("/:email", async(req, res) => {
     const studentSeatingPlans: ReturnObjInterface[] = [];
 
    // ...existing code...
-    if(email == "keshav.23bcs10002@sst.scaler.com"){
+    if(email == "keshav.23bcs10002@sst.scaler.com" || email == "debashis.maharana@scaler.com"){
         for (const plan of seatingPlans) {
             const subject = String(plan.name).split(':')[1];
 
