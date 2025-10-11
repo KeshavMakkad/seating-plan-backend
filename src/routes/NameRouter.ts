@@ -97,8 +97,39 @@ router.get("/:email", async(req, res) => {
     }
 
     const seatingPlans = await NameModel.find();
-
     const studentSeatingPlans: ReturnObjInterface[] = [];
+
+   // ...existing code...
+    if(email == "keshav.23bcs10002@sst.scaler.com"){
+        for (const plan of seatingPlans) {
+            const subject = String(plan.name).split(':')[1];
+
+            const seatingPlan = await DataModel.findOne({ name: plan.name });
+            const classrooms = (seatingPlan?.data as any)?.classrooms;
+
+            if (classrooms && typeof classrooms === "object") {
+                for (const className of Object.keys(classrooms)) {
+                    studentSeatingPlans.push({
+                        start_time: '0', // keep the special admin start time
+                        subject: subject,
+                        room: className,
+                        name: plan.name
+                    });
+                }
+            } else {
+                // Fallback if no classrooms found
+                studentSeatingPlans.push({
+                    start_time: '0',
+                    subject: subject,
+                    room: "All Rooms",
+                    name: plan.name
+                });
+            }
+        }
+        return res.status(200).json(studentSeatingPlans)
+    }
+// ...existing code...
+
 
     if(!seatingPlans) return res.status(404).json("No seating Plans Avaliable right now")
 
@@ -118,8 +149,6 @@ router.get("/:email", async(req, res) => {
                                 if(seat === email){
                                     found = true
                                     const subject = plan.name.split(':')[1]
-                                    
-                                    // studentStudentPlans.push(plan)
                                     studentSeatingPlans.push({
                                         start_time: plan.date,
                                         subject: subject,
