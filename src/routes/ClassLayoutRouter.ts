@@ -11,7 +11,7 @@ router.post("/:classname", async (req, res) => {
             className: className,
             classLayout: req.body.classLayout,
             updated_at: new Date(),
-            updated_by: req.body.updated_by || "system",
+            updated_by: req.body.updatedBy || "system",
         });
 
         console.log("Statement", newData);
