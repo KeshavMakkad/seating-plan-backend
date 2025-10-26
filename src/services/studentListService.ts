@@ -14,7 +14,6 @@ export const readStudentList = (filePath: string): Promise<Student[]> => {
             return;
         }
 
-        // Check if file exists
         if (!fs.existsSync(filePath)) {
             reject(new Error(`File not found: ${filePath}`));
             return;

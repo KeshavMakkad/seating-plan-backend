@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const connectDB = async () => {
-    const MONGO_DB_URI: string | undefined = process.env.MONGO_DB_URI
+    const MONGO_DB_URI: string | undefined = process.env.MONGO_DB_URI_TESTING;
 
     if(!MONGO_DB_URI){
         console.log("DB URL is undefiled")
