@@ -1,22 +1,20 @@
 import mongoose from "mongoose";
-import TimeStamp from "./../utils/db_plugins/timestamp"
-import AuditPlugin from "./../utils/db_plugins/modification"
-import SoftDelete from "./../utils/db_plugins/softDelete"
 
 interface ClassLayout {
-    _id: string; // use className as _id
+    className: string;
     classLayout: string[][];
+    updated_at: Date;
+    updated_by: string;
     is_active: boolean;
 }
 
 const ClassLayoutSchema = new mongoose.Schema<ClassLayout>({
-    _id: { type: String, required: true },
+    className: { type: String, required: true, unique: true },
     classLayout: { type: [[String]], required: true },
+    updated_at: { type: Date, required: true },
+    updated_by: { type: String, required: true },
+    is_active: { type: Boolean, default : true },
 });
-
-ClassLayoutSchema.plugin(TimeStamp);
-ClassLayoutSchema.plugin(AuditPlugin as any);
-ClassLayoutSchema.plugin(SoftDelete);
 
 const ClassLayoutModel = mongoose.model<ClassLayout>(
     "ClassLayout",
