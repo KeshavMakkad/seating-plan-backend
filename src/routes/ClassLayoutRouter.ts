@@ -9,7 +9,7 @@ router.post("/:classname", async (req, res) => {
 
         const newData = new ClassLayoutModel({
             className: className,
-            classLayout: req.body.classLayout,
+            classLayout: JSON.parse(req.body.classLayout),
             updated_at: new Date(),
             updated_by: req.body.updatedBy || "system",
         });
