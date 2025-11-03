@@ -37,8 +37,7 @@ router.put("/:classname", async (req, res) => {
                 classLayout: JSON.parse(req.body.classLayout),
                 updated_at: new Date(),
                 updated_by: req.body.updatedBy || "system",
-            },
-            { new: true }
+            }
         );
         if (!updatedData) {
             return res.status(404).json({ message: "Class Layout not found" });
