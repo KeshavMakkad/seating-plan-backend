@@ -7,20 +7,37 @@ router.post("/:classname", async (req, res) => {
     try {
         const className = req.params.classname;
 
-        const newData = new ClassLayoutModel({
-            className: className,
-            classLayout: JSON.parse(req.body.classLayout),
-            updated_at: new Date(),
-            updated_by: req.body.updatedBy || "system",
-        });
+        // parse classLayout safely
+        let parsedLayout: string[][];
+        try {
+            parsedLayout = typeof req.body.classLayout === "string"
+                ? JSON.parse(req.body.classLayout)
+                : req.body.classLayout;
+        } catch (e) {
+            return res.status(400).json({ message: "Invalid classLayout JSON" });
+        }
 
-        await newData.save();
+        // Avoid duplicate-key errors by performing an upsert. Check existence
+        // first to return an appropriate status code (201 for created, 200 for updated).
+        const exists = await ClassLayoutModel.exists({ className });
 
-        console.log(
-            "New Data:",
-            await ClassLayoutModel.findOne({ className: className })
-        );
-        res.status(201).json(newData);
+        const updatedDoc = await ClassLayoutModel.findOneAndUpdate(
+            { className },
+            {
+                $set: {
+                    classLayout: parsedLayout,
+                    updated_at: new Date(),
+                    updated_by: req.body.updatedBy || "system",
+                },
+                $setOnInsert: {
+                    is_active: true,
+                },
+            },
+            { new: true, upsert: true, setDefaultsOnInsert: true }
+        ).lean();
+
+        console.log("Upserted Data:", updatedDoc);
+        res.status(exists ? 200 : 201).json(updatedDoc);
     } catch (err) {
         console.error("Error:", err);
         res.status(500).json({ message: "Internal Server Error", err });
@@ -31,14 +48,24 @@ router.put("/:classname", async (req, res) => {
     try {
         const className = req.params.classname;
         
+        let parsedLayout: string[][];
+        try {
+            parsedLayout = typeof req.body.classLayout === "string"
+                ? JSON.parse(req.body.classLayout)
+                : req.body.classLayout;
+        } catch (e) {
+            return res.status(400).json({ message: "Invalid classLayout JSON" });
+        }
+
         const updatedData = await ClassLayoutModel.findOneAndUpdate(
             { className: className },
             {
-                classLayout: JSON.parse(req.body.classLayout),
+                classLayout: parsedLayout,
                 updated_at: new Date(),
                 updated_by: req.body.updatedBy || "system",
-            }
-        );
+            },
+            { new: true }
+        ).lean();
         if (!updatedData) {
             return res.status(404).json({ message: "Class Layout not found" });
         }
@@ -52,7 +79,7 @@ router.get("/:classname", async (req, res) => {
     try {
         const className = req.params.classname;
         console.log("Got till here 1");
-        const classLayout = await ClassLayoutModel.find({ className: className });
+        const classLayout = await ClassLayoutModel.findOne({ className: className }).lean();
         if (!classLayout) {
             return res.status(404).json({ message: "Class Layout not found" });
         }
