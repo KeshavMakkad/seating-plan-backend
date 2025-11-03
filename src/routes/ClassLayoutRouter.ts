@@ -14,14 +14,11 @@ router.post("/:classname", async (req, res) => {
             updated_by: req.body.updatedBy || "system",
         });
 
-        console.log("Statement", newData);
-        console.log("req Body:", req.body);
-
         await newData.save();
 
         console.log(
             "New Data:",
-            await ClassLayoutModel.findOne({ _id: className })
+            await ClassLayoutModel.findOne({ className: className })
         );
         res.status(201).json(newData);
     } catch (err) {
@@ -33,17 +30,20 @@ router.post("/:classname", async (req, res) => {
 router.put("/:classname", async (req, res) => {
     try {
         const className = req.params.classname;
-
-        const classLayout = await ClassLayoutModel.findById(className);
-        if (!classLayout) {
+        
+        const updatedData = await ClassLayoutModel.findOneAndUpdate(
+            { className: className },
+            {
+                classLayout: JSON.parse(req.body.classLayout),
+                updated_at: new Date(),
+                updated_by: req.body.updatedBy || "system",
+            },
+            { new: true }
+        );
+        if (!updatedData) {
             return res.status(404).json({ message: "Class Layout not found" });
         }
-
-        const { classLayout: layoutData } = req.body;
-
-        classLayout.classLayout = layoutData;
-        await classLayout.save();
-        res.status(200).json(classLayout);
+        res.status(200).json(updatedData);
     } catch (err) {
         res.status(500).json({ message: "Internal Server Error", err });
     }
@@ -52,7 +52,8 @@ router.put("/:classname", async (req, res) => {
 router.get("/:classname", async (req, res) => {
     try {
         const className = req.params.classname;
-        const classLayout = await ClassLayoutModel.findById(className);
+        console.log("Got till here 1");
+        const classLayout = await ClassLayoutModel.find({ className: className });
         if (!classLayout) {
             return res.status(404).json({ message: "Class Layout not found" });
         }
