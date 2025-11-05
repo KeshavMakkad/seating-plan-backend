@@ -1,5 +1,5 @@
 import express from "express";
-import ClassLayoutModel from "../models/ClassLayoutSchema";
+import ClassLayoutModel from "../models/ClassLayoutMongo";
 
 const router = express.Router();
 
@@ -17,8 +17,6 @@ router.post("/:classname", async (req, res) => {
             return res.status(400).json({ message: "Invalid classLayout JSON" });
         }
 
-        // Avoid duplicate-key errors by performing an upsert. Check existence
-        // first to return an appropriate status code (201 for created, 200 for updated).
         const exists = await ClassLayoutModel.exists({ className });
 
         const updatedDoc = await ClassLayoutModel.findOneAndUpdate(

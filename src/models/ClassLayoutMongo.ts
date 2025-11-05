@@ -1,12 +1,5 @@
 import mongoose from "mongoose";
-
-interface ClassLayout {
-    className: string;
-    classLayout: string[][];
-    updated_at: Date;
-    updated_by: string;
-    is_active: boolean;
-}
+import ClassLayout from "./ClassLayout";
 
 const ClassLayoutSchema = new mongoose.Schema<ClassLayout>({
     className: { type: String, required: true, unique: true },
